@@ -1,0 +1,16 @@
+---
+title: "Pharmacy report main"
+author: "Chris Beeley"
+date: "24/01/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+files.sources = list.files("R/", full.names = TRUE)
+sapply(files.sources, source)
+
+```
+
+## 
