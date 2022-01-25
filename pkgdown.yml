@@ -2,6 +2,8 @@ pandoc: 2.7.3
 pkgdown: 2.0.2
 pkgdown_sha: ~
 articles:
+  data-and-forecasting-functions: data-and-forecasting-functions.html
   get-started: get-started.html
-last_built: 2022-01-24T19:08Z
+  helper-functions: helper-functions.html
+last_built: 2022-01-25T11:30Z
 

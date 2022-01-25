@@ -10,7 +10,13 @@
     <loc>/LICENSE.html</loc>
   </url>
   <url>
+    <loc>/articles/data-and-forecasting-functions.html</loc>
+  </url>
+  <url>
     <loc>/articles/get-started.html</loc>
+  </url>
+  <url>
+    <loc>/articles/helper-functions.html</loc>
   </url>
   <url>
     <loc>/articles/index.html</loc>
@@ -22,13 +28,22 @@
     <loc>/index.html</loc>
   </url>
   <url>
+    <loc>/reference/calc_mode.html</loc>
+  </url>
+  <url>
     <loc>/reference/forecast_series.html</loc>
+  </url>
+  <url>
+    <loc>/reference/get_holidays.html</loc>
   </url>
   <url>
     <loc>/reference/index.html</loc>
   </url>
   <url>
     <loc>/reference/make_tsibble.html</loc>
+  </url>
+  <url>
+    <loc>/reference/n_weekdays.html</loc>
   </url>
   <url>
     <loc>/reference/pharmacyReports-package.html</loc>
