@@ -2,6 +2,7 @@
 
 export("%>%")
 export(calc_mode)
+export(drug_quantity)
 export(forecast_series)
 export(get_holidays)
 export(make_tsibble)

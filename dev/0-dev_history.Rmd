@@ -69,7 +69,24 @@ gitlabr::use_gitlab_ci(type = "check-coverage-pkgdown")
 
 # Add new flat template
 fusen::add_flat_template("add")
+fusen::add_flat_template("add", flat_name = "inventory_functions")
 ```
+
+```{r}
+
+# list all flat files for inflation
+
+fusen::inflate(flat_file = "dev/flat_helper-functions.Rmd", 
+               vignette_name = "Helper functions")
+
+fusen::inflate(flat_file = "dev/flat_inventory_functions.Rmd", 
+               vignette_name = "Inventory functions")
+
+fusen::inflate(flat_file = "dev/flat_data-forecasting.Rmd", 
+               vignette_name = "Data and forecasting functions")
+
+```
+
 
 ## Use everytime needed
 

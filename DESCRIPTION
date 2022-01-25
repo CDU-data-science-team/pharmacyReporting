@@ -13,6 +13,7 @@ Imports:
     jsonlite,
     lubridate,
     magrittr,
+    phaRmacyForecasting,
     tibble,
     tidyselect,
     tsibble
