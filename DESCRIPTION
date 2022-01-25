@@ -10,12 +10,14 @@ Imports:
     fable,
     fabletools,
     ggplot2,
+    jsonlite,
     lubridate,
     magrittr,
     tibble,
     tidyselect,
     tsibble
 Suggests: 
+    here,
     knitr,
     rmarkdown,
     testthat

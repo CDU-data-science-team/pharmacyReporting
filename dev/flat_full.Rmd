@@ -12,7 +12,7 @@ editor_options:
 library(testthat)
 ```
 
-# The first function of the package: Calculate the median of a vector
+# Forecasting and data functions
 
 <!--
 Create a chunk for the core of the function
@@ -171,7 +171,10 @@ After inflating the template
 -  This test code will be added in the "tests/testthat/" directory
 -->
 
-```{r tests}
+```{r tests-forecasting}
+
+load(here::here("data", "pharmacy.rda"))
+
 test_that("Data produced correctly", {
   
   test_data <- pharmacy %>% 
@@ -230,7 +233,8 @@ These are only included in the present flat template file, their content will no
 ```{r development-inflate, eval=FALSE}
 # Keep eval=FALSE to avoid infinite loop in case you hit the knit button
 # Execute in the console directly
-fusen::inflate(flat_file = "dev/flat_full.Rmd", vignette_name = "Get started")
+fusen::inflate(flat_file = "dev/flat_full.Rmd", 
+               vignette_name = "Data and forecasting functions")
 ```
 
 

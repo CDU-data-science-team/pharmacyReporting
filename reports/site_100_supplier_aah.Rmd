@@ -6,11 +6,42 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+
 knitr::opts_chunk$set(echo = TRUE)
 
-files.sources = list.files("R/", full.names = TRUE)
-sapply(files.sources, source)
+library(magrittr)
+
+load(here::here("data/pharmacy.rda"))
+
+files.sources = list.files(here::here("R/"), full.names = TRUE)
+purrr::walk(files.sources, ~ source(., local = knitr::knit_global()))
 
 ```
 
-## 
+## Test forecasting
+
+```{r}
+
+test_data <- pharmacy |>
+  dplyr::filter(Site1 == "Site A", NSVCode == "Drug A")
+
+daily_data <- make_tsibble(test_data, frequency = "Daily")
+
+weekly_data <- make_tsibble(test_data, frequency = "Weekly")
+
+daily_forecast <- forecast_series(
+  daily_data |> head(-42), 42, frequency = "Daily")
+
+weekly_forecast <- forecast_series(
+  daily_data |> head(-6), 6, frequency = "Weekly")
+
+plot_forecast(forecast_value = daily_forecast, 
+              data = daily_data, 
+              horizon = 42)
+
+show_accuracy(forecast_value = daily_forecast, 
+              data = daily_data, 
+              horizon = 42)
+
+```
+
