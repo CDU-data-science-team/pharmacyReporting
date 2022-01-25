@@ -1,0 +1,13 @@
+name: site_100_supplier_aah4
+title: site_100_supplier_aah
+username: Chris.Beeley
+account: Chris.Beeley
+server: clinicaldashboards
+hostUrl: https://clinicaldashboards/__api__
+appId: 245
+bundleId: 7686
+url: https://clinicaldashboards/content/245/
+when: 1643142848.00556
+lastSyncTime: 1643142848.00556
+asMultiple: FALSE
+asStatic: FALSE

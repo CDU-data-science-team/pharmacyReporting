@@ -208,13 +208,16 @@ Q_enough_Delta <- function(forecast_q, choose_distribution, d_i, inv_i, current_
     sc <-  (p_min / phi) * (1 - epsilon) # get reduction required in phi
     y_peak <- which.max(term_y) # find biggest term in phi
     
-    P_target <- Prob_y[y_peak] * sc # find target probability for next delivery being ordered at y
+    # find target probability for next delivery being ordered at y
+    
+    P_target <- Prob_y[y_peak] * sc  
     
     y_hat <- y_peak 
     test <- Prob_y[y_hat]
     
     # effectively we are bringing the order of the next forward until we get 
-    # desired reduction in the (currently) biggest contribution to the prob of Q_i being insufficient 
+    # desired reduction in the (currently) biggest contribution 
+    # to the prob of Q_i being insufficient 
     
     while(test > P_target){   
       
@@ -240,15 +243,22 @@ Q_enough_Delta <- function(forecast_q, choose_distribution, d_i, inv_i, current_
 Q_enough_Q <- function(lead_time_dis, inv_i, current_q_i, outstanding_orders, 
                        Forecast_quantiles, Delta_i, min_stock, p_min){
   
-  # This function assesses whether Q_i will be sufficient and, if not, suggests next Q_i to try  
+  # This function assesses whether Q_i will be sufficient and, if not, 
+  # suggests next Q_i to try  
+  
   epsilon <- 0.01
   flag1 = 0     # initialise as insufficient
   phi = 1 # this is the probability that order is insufficient
-  P_Q_insuff <- c(rep(1, nrow(Forecast_quantiles))) # this is the prob that, if next  order delivered at time y, Q_i for this order will be insufficient to meet demand to then
-  Prob_y <-c(rep(0, nrow(Forecast_quantiles))) # initialise to zero - this is the probability that the next order is delivered at time y
+  P_Q_insuff <- c(rep(1, nrow(Forecast_quantiles))) # this is the prob that, 
+  # if next  order delivered at time y, Q_i for this order will be 
+  # insufficient to meet demand to then
+  Prob_y <-c(rep(0, nrow(Forecast_quantiles))) # initialise to zero - 
+  # this is the probability that the next order is delivered at time y
   term_y <- c(rep(0, nrow(Forecast_quantiles))) # 
   num_q_vals <- ncol(Forecast_quantiles)
-  q_vals <- c(seq(0,1, 1 / (num_q_vals - 1))) # set up vector of quantile levels - evenly spaced for now
+  q_vals <- c(seq(0,1, 1 / (num_q_vals - 1))) # set up vector of quantile levels - 
+  # evenly spaced for now
+  
   Q_i <- current_q_i
   Q_out <- sum(outstanding_orders) # quantity associated with outstanding orders
   
@@ -379,10 +389,6 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
     dplyr::filter(Site == site)
   
   purrr::pmap_dfr(order_list, function(Drug_code, ProductID, ...){
-    
-    # attach(order_list |> dplyr::filter(Drug_code =="DVT562Q"))
-    
-    cat(Drug_code)
     
     # Filter product for relevant product
     
