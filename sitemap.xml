@@ -22,6 +22,9 @@
     <loc>/articles/index.html</loc>
   </url>
   <url>
+    <loc>/articles/inventory-functions.html</loc>
+  </url>
+  <url>
     <loc>/authors.html</loc>
   </url>
   <url>
@@ -31,6 +34,9 @@
     <loc>/reference/calc_mode.html</loc>
   </url>
   <url>
+    <loc>/reference/drug_quantity.html</loc>
+  </url>
+  <url>
     <loc>/reference/forecast_series.html</loc>
   </url>
   <url>
@@ -38,6 +44,12 @@
   </url>
   <url>
     <loc>/reference/index.html</loc>
+  </url>
+  <url>
+    <loc>/reference/inventory_reorder.html</loc>
+  </url>
+  <url>
+    <loc>/reference/make_quantiles.html</loc>
   </url>
   <url>
     <loc>/reference/make_tsibble.html</loc>
