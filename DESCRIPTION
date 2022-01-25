@@ -6,6 +6,7 @@ Authors@R:
 Description: Using forecasting and stock control mechanisms.
 License: MIT + file LICENSE
 Imports: 
+    distr6,
     dplyr,
     fable,
     fabletools,
@@ -13,8 +14,10 @@ Imports:
     jsonlite,
     lubridate,
     magrittr,
-    phaRmacyForecasting,
+    purrr,
+    stats,
     tibble,
+    tidyr,
     tidyselect,
     tsibble
 Suggests: 

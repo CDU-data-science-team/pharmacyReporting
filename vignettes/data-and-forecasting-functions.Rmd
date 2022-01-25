@@ -55,20 +55,6 @@ After inflating the template
 -->
 
 
-<!--
-
-# There can be development actions
-
-Create a chunk with 'development' actions
-
-- The chunk needs to be named `development` or `dev`
-- It contains functions that are used for package development only
-- Note that you may want to store most of these functions in the 0-dev_history.Rmd file
-
-These are only included in the present flat template file, their content will not be part of the package anywhere else.
--->
-
-
 # Inflate your package
 
 You're one inflate from paper to box.

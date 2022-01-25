@@ -39,7 +39,7 @@ drug_quantity <- function(forecast, distribution, min_stock, max_stock,
   Delta_i = delta_pref # initialise time to next order
   flag_suf = 0 # initialise a flag indicating (=1) that Q_i is sufficent 
   flag_stor = 0 # initialise a flag indicating (=1) that Q_i is not too much 
-  Forecast_quantiles <- phaRmacyForecasting:::make_quantiles(forecast)
+  Forecast_quantiles <-make_quantiles(forecast)
   
   tmp1 <- c(0,0) # dummy storage for Q_i and flag_suf 
   dummy_counter <- 0
@@ -50,7 +50,7 @@ drug_quantity <- function(forecast, distribution, min_stock, max_stock,
     
     # returns whether Q_i sufficient and next Q_i to try
     
-    tmp1 <- phaRmacyForecasting:::Q_enough_Q(
+    tmp1 <- Q_enough_Q(
       distribution, inv_i, Q_i, outstanding_orders, Forecast_quantiles, 
       Delta_i, min_stock, p_min)
     
@@ -65,7 +65,7 @@ drug_quantity <- function(forecast, distribution, min_stock, max_stock,
   tmp2 <- c(Q_i, flag_stor)
   
   # returns whether Q_i satisfies storage condition and next Q_i to try
-  tmp2 <- phaRmacyForecasting:::Q_toomuch_Q(forecast_q = Forecast_quantiles, 
+  tmp2 <- Q_toomuch_Q(forecast_q = Forecast_quantiles, 
                                             o_orders = outstanding_orders,
                                             choose_distribution = distribution,
                                             current_q_i = Q_i,
@@ -195,7 +195,7 @@ Q_enough_Delta <- function(forecast_q, choose_distribution, d_i, inv_i, current_
   for (y in seq(1, nrow(forecast_q), 1)){    # all this as per Q_enough_Q
     
     Prob_y[y] <- choose_distribution$cdf(y - Delta_i) - choose_distribution$cdf(y - Delta_i - 1)
-    P_Q_insuff[y] <- 1 - phaRmacyForecasting:::pwlcdf(
+    P_Q_insuff[y] <- 1 - pwlcdf(
       forecast_q, q_vals, num_q_vals, y, inv_i + Q_out + Q_i - min_stock)
   }
   
@@ -260,7 +260,7 @@ Q_enough_Q <- function(lead_time_dis, inv_i, current_q_i, outstanding_orders,
     
     Prob_y[y] <- lead_time_dis$cdf(y - Delta_i) - lead_time_dis$cdf(y - Delta_i - 1)
     
-    P_Q_insuff[y] <- 1 - phaRmacyForecasting:::pwlcdf(
+    P_Q_insuff[y] <- 1 - pwlcdf(
       Forecast_quantiles, q_vals, num_q_vals, y, inv_i + Q_out + Q_i - min_stock) # returns probability that demand up to and including day y eats into emergency stock
   }
   
@@ -275,7 +275,7 @@ Q_enough_Q <- function(lead_time_dis, inv_i, current_q_i, outstanding_orders,
     
     P_target <- P_Q_insuff[y_peak] * sc # get target for reduced contribution from biggest term 
     
-    B <- phaRmacyForecasting:::pwlquant(Forecast_quantiles, q_vals, num_q_vals, y_peak, (1 - P_target))     # get from forecast the demand associated with that target probability 
+    B <- pwlquant(Forecast_quantiles, q_vals, num_q_vals, y_peak, (1 - P_target))     # get from forecast the demand associated with that target probability 
     
     Q_i <- B + min_stock - inv_i - Q_out # set Q_i to be sufficient reduce bring biggest term in phi by sc - amount determined above.
     
@@ -310,7 +310,7 @@ Q_toomuch_Q <- function(forecast_q, o_orders, choose_distribution, current_q_i,
     
     Prob_x[x] <- choose_distribution$cdf(x) - choose_distribution$cdf(x - 1)  # probability that this delivery will be on day x
     
-    P_Q_toomuch[x] <- phaRmacyForecasting:::pwlcdf(
+    P_Q_toomuch[x] <- pwlcdf(
       forecast_q, q_vals, num_q_vals, x, inv_i + Q_out + Q_i - max_stock
     ) # gives probability that, if this delivery arrives at time x, it will breach storage constraint
   }
@@ -326,7 +326,7 @@ Q_toomuch_Q <- function(forecast_q, o_orders, choose_distribution, current_q_i,
     
     P_target <- P_Q_toomuch[x_peak] * sc   # get target for reduced contribution from biggest term
     
-    B <- phaRmacyForecasting:::pwlquant(forecast_q, q_vals, num_q_vals, x_peak, P_target)   # get from forecast the demand associated with target prob
+    B <- pwlquant(forecast_q, q_vals, num_q_vals, x_peak, P_target)   # get from forecast the demand associated with target prob
     
     Q_i <- B - inv_i - Q_out + max_stock # set Q_i to meet that demand.
     # note this is not guaranteed to be enough of a reduction.  
