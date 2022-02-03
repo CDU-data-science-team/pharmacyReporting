@@ -49,12 +49,12 @@ drug_quantity <- function(forecast, distribution, min_stock, max_stock,
 
   # returns whether Q_i satisfies storage condition and next Q_i to try
   tmp2 <- Q_toomuch_Q(forecast_q = Forecast_quantiles,
-                                            o_orders = outstanding_orders,
-                                            choose_distribution = distribution,
-                                            current_q_i = Q_i,
-                                            max_stock = max_stock,
-                                            p_max = p_max,
-                                            inv_i = inv_i)
+                      o_orders = outstanding_orders,
+                      choose_distribution = distribution,
+                      current_q_i = Q_i,
+                      max_stock = max_stock,
+                      p_max = p_max,
+                      inv_i = inv_i)
 
   Q_i <- tmp2[1]
   flag_stor <- tmp2[2]
@@ -351,14 +351,15 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
                               updateProgress = NULL){
 
   # Settings which aren't yet provided within the code
-  risk_of_min_stock <-  0.01
-  risk_of_exceeding_max_stock <- 0.05
-  time_til_next_order <- 10
-  max_storage_capacity <-  30000
+  max_storage_capacity <-  100000
 
   # add in other waste / expiry / adjustment codes
-  waste_adjust_codes <- c("ADJ","COMSP","EXP", "HADJ","HEXP", "HWAST", "MOCK",
+  waste_adjust_codes <- c("Adj", "ADJ","COMSP","EXP", "HADJ","HEXP", "HWAST", "MOCK",
                           "RWAST", "TEST", "TRG", "WAST", "WASTE", "XXXX")
+
+  # list of excluded suppliers for site 100
+
+  cross_site_order_exclusions <- c("HIGH", "MILL", "PHWRC", "RAMP")
 
   # takes two reactive inputs- site and supplier
 
@@ -366,12 +367,33 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
     dplyr::filter(Site == site, Supplier_name == supplier) %>%
     dplyr::arrange(Drug_name)
 
+  # Add in order cycle - only needed for shadow testing
+  order_list <- dplyr::left_join(order_list, product_ord_cycle,
+                                 by = c("Site" = "Site", "Drug_code" = "Drug_code",
+                                        "Supplier_name" = "Supplier_name"))
+
+  # Identify new products which haven't been assigned an AAH ordercycle and
+  # add in ordercycle details - only needed for shadow testing
+  order_list$Order_cycle[is.na(order_list$Order_cycle)] <- "empty"
+  order_list$Order_cycle <- ifelse(order_list$Order_cycle == "empty", "AAHb",
+                                   order_list$Order_cycle)
+
   # select orders placed within the last 2 years
   order_log <- w_order %>%
     subset(DateOrdered > Sys.Date() - 730) %>%
     dplyr::filter(Site == site)
 
-  purrr::pmap_dfr(order_list[1: 2, ], function(Drug_code, ProductID, ...){
+  # this is only needed for site 100
+  if(site == 100){
+    order_log <- order_log %>%
+      dplyr::filter(!Supplier_name %in% cross_site_order_exclusions)
+  }
+
+  purrr::pmap_dfr(order_list, function(Drug_code, ProductID, ...){
+
+    comment <-  "None"
+
+    # cat(Drug_code)
 
     # Filter product for relevant product
 
@@ -380,9 +402,8 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
 
     # calculate leadtimes
 
-    # Get rid of multiple lines for same order & received date
     ord_log <- order_log %>%
-      dplyr::filter(Kind %in% c("O", "I") &
+      dplyr::filter(Kind %in% c("D", "O", "I") &
                       .data$Drug_code == .env$Drug_code) %>%
       dplyr::select(OrderNum, Drug_code, DateOrdered, QtyOrd)
 
@@ -390,11 +411,20 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
 
       return(
         data.frame(drug = Drug_code,
-                   order = 0,
-                   days_to_order = time_til_next_order)
+                   order = NA,
+                   days_to_order = NA,
+                   Drug_Name = product_info$Drug_name[1],
+                   Supplier_Tradename = product_info$SupplierTradeName[1],
+                   PackSize = product_info$Packsize[1],
+                   Units = product_info$PrintForm[1],
+                   Stock_Level = product_info$stocklvl[1],
+                   Last_Order_Date = product_info$lastordered[1],
+                   Min_stock_risk = NA,
+                   Comments = "No history - order manually")
       )
     }
 
+    # Get rid of multiple lines for same order & received date
     rec_log <- order_log %>%
       dplyr::filter(Site == site & Kind == "R" &
                       .data$Drug_code == .env$Drug_code) %>%
@@ -407,8 +437,16 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
 
       return(
         data.frame(drug = Drug_code,
-                   order = 0,
-                   days_to_order = time_til_next_order)
+                   order = NA,
+                   days_to_order = NA,
+                   Drug_Name = product_info$Drug_name[1],
+                   Supplier_Tradename = product_info$SupplierTradeName[1],
+                   PackSize = product_info$Packsize[1],
+                   Units = product_info$PrintForm[1],
+                   Stock_Level = product_info$stocklvl[1],
+                   Last_Order_Date = product_info$lastordered[1],
+                   Min_stock_risk = NA,
+                   Comments = "No history - order manually")
       )
     }
 
@@ -418,6 +456,12 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
                                            "DateOrdered" = "DateOrdered"))
     ord_rec_log <- ord_rec_log %>%
       dplyr::mutate(Outstanding_order = QtyOrd - QtyRec)
+
+    orders_outstanding <- ord_rec_log %>%
+      dplyr::group_by(Site, Supplier_name, Drug_code, OrderNum, DateOrdered, QtyOrd) %>%
+      dplyr::summarise(TotalRecQty = sum(QtyRec)) %>%
+      dplyr::mutate(Outstanding_order = QtyOrd - TotalRecQty) %>%
+      dplyr::ungroup()
 
     leadtime <- ord_rec_log %>%
       dplyr::rowwise() %>%
@@ -429,8 +473,16 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
 
       return(
         data.frame(drug = Drug_code,
-                   order = 0,
-                   days_to_order = time_til_next_order)
+                   order = NA,
+                   days_to_order = NA,
+                   Drug_Name = product_info$Drug_name[1],
+                   Supplier_Tradename = product_info$SupplierTradeName[1],
+                   PackSize = product_info$Packsize[1],
+                   Units = product_info$PrintForm[1],
+                   Stock_Level = product_info$stocklvl[1],
+                   Last_Order_Date = product_info$lastordered[1],
+                   Min_stock_risk = NA,
+                   Comments = "No history - order manually")
       )
     }
 
@@ -447,22 +499,41 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
       mode = leadmode)
 
     # find outstanding order quantity for orders placed within last 14 days
-    outstanding_order_qty  <- ord_rec_log %>%
+    outstanding_order_qty  <- orders_outstanding %>%
       subset(DateOrdered > Sys.Date() - 14) %>%
       dplyr::mutate(out_ord_qty =
-                      Outstanding_order * product_info$Packsize) %>%
+                      Outstanding_order * product_info$Packsize[1]) %>%
       dplyr::summarise(total_out_ord_qty = sum(out_ord_qty))
+
+    # See if any outstanding orders from last 60 days add comment to shiny table
+    outstanding_order_comment <- orders_outstanding %>%
+      subset(DateOrdered > Sys.Date() - 60) %>%
+      dplyr::filter(Outstanding_order > 0) %>%
+      dplyr::arrange(desc(DateOrdered))
+
+    if(nrow(outstanding_order_comment) == 0){
+      comment <- "None"
+    }else{
+      comment <- paste("Outstanding order from",
+                       outstanding_order_comment$DateOrdered[1], sep = " ")
+    }
 
     # find outstanding requisitions which need fulfilling
 
     outstanding_requis <- requis %>%
-      dplyr::filter(SiteID == site, .data$Drug_code == .env$Drug_code)
+      dplyr::filter(Site == site, .data$Drug_code == .env$Drug_code)
 
-    outstanding_requis <- outstanding_requis %>%
-      # do we need to have a cut off i.e. DateOrdered > Sys.Date() - 14?
-      subset(DateOrdered > Sys.Date() - 14) %>%
-      dplyr::summarise(total_out_requis =
-                         sum(Outstanding) * product_info$Packsize[1])
+    if(nrow(outstanding_requis) == 0){
+      outstanding_requis_quantity <- 0L
+
+    }else{
+      outstanding_requis <- outstanding_requis %>%
+        subset(DateOrdered > Sys.Date() - 14) %>%
+        dplyr::summarise(total_out_requis =
+                           sum(Outstanding))
+      outstanding_requis_quantity <- outstanding_requis$total_out_requis[1]
+      comment <- "Outstanding requisition"
+    }
 
     # Filter out issues to adjustment and waste codes
     # to consider in future deleting issues done in error i.e.
@@ -471,7 +542,8 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
     demand_data <- w_trans_log_df1 %>%
       dplyr::filter(Site == site,
                     .data$Drug_code == .env$Drug_code,
-                    !Ward %in% waste_adjust_codes) %>%
+                    !Ward %in% waste_adjust_codes,
+                    Qty >= 0) %>%
       rbind(data.frame(WTranslogID = "NA", Date = Sys.Date(),
                        Drug_code = Drug_code,
                        Qty = 0, Ward = "NA", Site = site)) %>%
@@ -490,8 +562,16 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
 
       return(
         data.frame(drug = Drug_code,
-                   order = 0,
-                   days_to_order = time_til_next_order)
+                   order = NA,
+                   days_to_order = NA,
+                   Drug_Name = product_info$Drug_name[1],
+                   Supplier_Tradename = product_info$SupplierTradeName[1],
+                   PackSize = product_info$Packsize[1],
+                   Units = product_info$PrintForm[1],
+                   Stock_Level = product_info$stocklvl[1],
+                   Last_Order_Date = product_info$lastordered[1],
+                   Min_stock_risk = NA,
+                   Comments = "No history - order manually")
       )
     }
 
@@ -503,6 +583,46 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
                                        .98, na.rm = TRUE) %>%
       ceiling()
 
+    # Work out p_min from order scheduling
+
+    product_ordercycle <- product_ord_cycle %>%
+      dplyr::filter(.data$Drug_code == .env$Drug_code)
+
+    sup_ordercycle <- sup_order_sched %>%
+      dplyr::filter(Supplier == supplier & Order_cycle == product_ordercycle$Order_cycle[1])
+
+    ar <- (lubridate::interval(sup_ordercycle$Order_cycle_start_date[1], Sys.Date()) %>%
+             as.numeric('days')) %% 14
+
+    time_til_next_order <- ord_sch %>%
+      dplyr::filter(Day == sup_order_sched$Order_day[1] & x == ar)
+
+    if(nrow(time_til_next_order) == 0){
+
+      return(
+        data.frame(drug = Drug_code,
+                   order = NA,
+                   days_to_order = NA,
+                   Drug_Name = product_info$Drug_name[1],
+                   Supplier_Tradename = product_info$SupplierTradeName[1],
+                   PackSize = product_info$Packsize[1],
+                   Units = product_info$PrintForm[1],
+                   Stock_Level = product_info$stocklvl[1],
+                   Last_Order_Date = product_info$lastordered[1],
+                   Min_stock_risk = NA,
+                   Comments = "No history - order manually")
+      )
+    }
+
+    if(time_til_next_order$Delta_p[1] >= 7){
+      risk_of_min_stock <- 0.15
+      risk_of_exceeding_max_stock <- 0.05
+
+    }else{
+      risk_of_min_stock <- 0.4
+      risk_of_exceeding_max_stock <- 0.05
+    }
+
     # Run forecast
     demand_data <- make_tsibble(demand_data, frequency = "Daily")
 
@@ -511,9 +631,6 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
     actual_forecast <- daily_forecast %>%
       dplyr::filter(.model == "ARIMA")
 
-    # work out where outstanding requisitions fit into the process -
-    # the value is found at outstanding_requis$total_out_requis[1]
-
     step <- drug_quantity(
       forecast = actual_forecast,
       distribution = lead_time_dis,
@@ -521,16 +638,27 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
       max_stock = max_storage_capacity,
       p_min = risk_of_min_stock,
       p_max = risk_of_exceeding_max_stock,
-      inv_i = product_info$stocklvl,
-      delta_pref = time_til_next_order,
-      outstanding_orders = outstanding_order_qty$total_out_ord_qty)
+      inv_i = product_info$stocklvl[1],
+      delta_pref = time_til_next_order$Delta_p[1],
+      outstanding_orders = outstanding_order_qty$total_out_ord_qty[1])
+
+    comment <- ifelse(comment != "None", comment, "None")
 
     to_return <- data.frame(drug = Drug_code,
-                            order = ceiling(step$Q_i/product_info$Packsize[1]),
-                            days_to_order = step$Delta_i)
+                            order = ceiling(step$Q_i / product_info$Packsize[1] +
+                                              outstanding_requis_quantity),
+                            days_to_order = step$Delta_i,
+                            Drug_Name = product_info$Drug_name[1],
+                            Supplier_Tradename = product_info$SupplierTradeName[1],
+                            PackSize = product_info$Packsize[1],
+                            Units = product_info$PrintForm[1],
+                            Stock_Level = product_info$stocklvl[1],
+                            Last_Order_Date = product_info$lastordered[1],
+                            Min_stock_risk = risk_of_min_stock,
+                            Comments = comment)
 
     # updateProgress(detail = paste0("Drug: ", to_return$drug, ", order:",
-    #                       to_return$order))
+    #                                to_return$order))
 
     # Populate order quantity & time 'til next order in output table
     return(to_return)
