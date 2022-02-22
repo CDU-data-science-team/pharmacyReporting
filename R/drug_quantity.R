@@ -22,7 +22,7 @@ drug_quantity <- function(forecast, distribution, min_stock, max_stock,
   Delta_i = delta_pref # initialise time to next order
   flag_suf = 0 # initialise a flag indicating (=1) that Q_i is sufficent
   flag_stor = 0 # initialise a flag indicating (=1) that Q_i is not too much
-  Forecast_quantiles <-make_quantiles(forecast)
+  Forecast_quantiles <- make_quantiles(forecast)
 
   tmp1 <- c(0,0) # dummy storage for Q_i and flag_suf
   dummy_counter <- 0
@@ -111,7 +111,9 @@ drug_quantity <- function(forecast, distribution, min_stock, max_stock,
               "Delta_i" = Delta_i))
 }
 
-pwlcdf <- function(Forecast_quantiles, q_vals, num_q_vals, time_point, x){ # set up as piece wise linear from input.
+# set up as piece wise linear from input.
+
+pwlcdf <- function(Forecast_quantiles, q_vals, num_q_vals, time_point, x){
 
   res <- numeric(length(x))
 
@@ -136,7 +138,9 @@ pwlcdf <- function(Forecast_quantiles, q_vals, num_q_vals, time_point, x){ # set
   return(res)
 }
 
-pwlquant <- function(Forecast_quantiles, q_vals, num_q_vals, time_point, p){ # set up as piece wise linear from input.
+# set up as piece wise linear from input.
+
+pwlquant <- function(Forecast_quantiles, q_vals, num_q_vals, time_point, p){
 
   res <- numeric(length(p))
 
@@ -163,26 +167,44 @@ Q_enough_Delta <- function(forecast_q, choose_distribution, d_i, inv_i, current_
 
   epsilon <- 0.01
   flag1 <- 0
-  P_Q_insuff <- c(rep(1, nrow(forecast_q))) # initialise as insufficient
-  Prob_y <-c(rep(0, nrow(forecast_q))) # initialise to zero
-  term_y <- c(rep(0, nrow(forecast_q)))
+  lmax <- length(choose_distribution)
+  Delta_i <- d_i
+  # prob that, if next  order delivered at time y, Q_i for this
+  # order will be insufficient to meet demand to then
+  P_Q_insuff <- c(rep(1,Delta_i+lmax+1))
+  # initialise to zero - probability that the next order is delivered at time y
+  Prob_y <-c(rep(0,Delta_i+lmax+1))
+  term_y <- c(rep(0,Delta_i+lmax+1))
   Q_i <- current_q_i
   num_q_vals <- ncol(forecast_q)
-  q_vals <- c(seq(0,1, 1 / (num_q_vals - 1))) # set up vector of quantile levels - evenly spaced for now
-  Delta_i <- d_i
+
+  # set up vector of quantile levels - evenly spaced for now
+  q_vals <- c(seq(0,1, 1 / (num_q_vals - 1)))
   Q_out <- sum(outstanding_orders)
 
-  # now set probabilities for next delivery arriving at time y CHECK DISCRETISATION AGAINST FORECAST
+  # now set probabilities for next delivery arriving at time y
   # and Q_i being insufficient if that is the case
 
-  for (y in seq(1, nrow(forecast_q), 1)){    # all this as per Q_enough_Q
+  for (y in 1:Delta_i){
+    Prob_y[y] = 0
 
-    Prob_y[y] <- choose_distribution$cdf(y - Delta_i) - choose_distribution$cdf(y - Delta_i - 1)
-    P_Q_insuff[y] <- 1 - pwlcdf(
-      forecast_q, q_vals, num_q_vals, y, inv_i + Q_out + Q_i - min_stock)
+    # returns probability that demand up to and including day y eats into emergency stock
+    P_Q_insuff[y] <- 1 - pwlcdf(Forecast_quantiles, q_vals, num_q_vals, y,
+                                inv_i + Q_out + Q_i - min_stock)
   }
 
-  term_y <- Prob_y * P_Q_insuff
+  # we only need to go just beyond (Delta_i + longest lead time)
+
+  for (y in seq(Delta_i + 1, Delta_i + lmax, 1)) {
+
+    Prob_y[y] = choose_distribution[y-Delta_i]
+
+    # returns probability that demand up to and including day y eats into emergency stock
+
+    P_Q_insuff[y] <- 1 - pwlcdf(Forecast_quantiles, q_vals, num_q_vals, y,
+                                inv_i + Q_out + Q_i - min_stock)
+
+  } # loop over second set of values of y
 
   phi <- sum(term_y)
 
@@ -232,12 +254,19 @@ Q_enough_Q <- function(lead_time_dis, inv_i, current_q_i, outstanding_orders,
   epsilon <- 0.01
   flag1 = 0     # initialise as insufficient
   phi = 1 # this is the probability that order is insufficient
-  P_Q_insuff <- c(rep(1, nrow(Forecast_quantiles))) # this is the prob that,
-  # if next  order delivered at time y, Q_i for this order will be
-  # insufficient to meet demand to then
-  Prob_y <-c(rep(0, nrow(Forecast_quantiles))) # initialise to zero -
-  # this is the probability that the next order is delivered at time y
-  term_y <- c(rep(0, nrow(Forecast_quantiles))) #
+
+  lmax <- length(lead_time_dis)
+
+  # this is the prob that, if next  order delivered at time y, Q_i for this
+  # order will be insufficient to meet demand to then
+
+  P_Q_insuff <- c(rep(1,Delta_i + lmax + 1))
+  # initialise to zero - this is the probability that the next order is
+  # delivered at time y
+
+  Prob_y <-c(rep(0,Delta_i+lmax+1))
+  term_y <- c(rep(0,Delta_i+lmax+1))
+
   num_q_vals <- ncol(Forecast_quantiles)
   q_vals <- c(seq(0,1, 1 / (num_q_vals - 1))) # set up vector of quantile levels -
   # evenly spaced for now
@@ -245,32 +274,55 @@ Q_enough_Q <- function(lead_time_dis, inv_i, current_q_i, outstanding_orders,
   Q_i <- current_q_i
   Q_out <- sum(outstanding_orders) # quantity associated with outstanding orders
 
-  # now set probabilities for next delivery arriving at time y
-  # NOTE NEED TO CHECK DISCRETISATION AGAINST FORECAST
-  # and Q_i being insufficient if that is the case
+  for (y in 1 : Delta_i){
 
-  for (y in seq(1, nrow(Forecast_quantiles), 1)){
+    Prob_y[y] = 0
 
-    Prob_y[y] <- lead_time_dis$cdf(y - Delta_i) - lead_time_dis$cdf(y - Delta_i - 1)
-
-    P_Q_insuff[y] <- 1 - pwlcdf(
-      Forecast_quantiles, q_vals, num_q_vals, y, inv_i + Q_out + Q_i - min_stock) # returns probability that demand up to and including day y eats into emergency stock
+    # probability that demand up to and including day y eats into emergency stock
+    P_Q_insuff[y] <- 1 - pwlcdf(Forecast_quantiles,
+                                q_vals, num_q_vals, y,
+                                inv_i + Q_out + Q_i - min_stock)
   }
+  # we only need to go just beyond (Delta_i + longest lead time)
+  for (y in seq(Delta_i + 1, Delta_i + lmax, 1)) {
 
-  term_y <- Prob_y * P_Q_insuff  # the joint probability that delivery of next order occurs at y and that q_i insufficient if so
+    # Prob_y[y] = lead_time_dis[y-Delta_i]
+    Prob_y[y] = lead_time_dis$cdf(y-Delta_i)
 
-  phi <- sum(term_y) # sums over all possible delivery times y to give probability that Q_i insufficient
+    # returns probability that demand up to and including day y eats into emergency stock
+    P_Q_insuff[y] <- 1 - pwlcdf(Forecast_quantiles, q_vals, num_q_vals, y,
+                                inv_i + Q_out + Q_i - min_stock)
+
+  } # loop over second set of values of y
+
+  # joint probability delivery of next order occurs at y and that q_i insufficient if so
+
+  term_y <- Prob_y * P_Q_insuff
+
+  # sums over all possible delivery times y to give probability that Q_i insufficient
+
+  phi <- sum(term_y)
 
   if (phi > p_min) { # if Q_i not sufficient
 
-    sc <-  (p_min / phi) * (1 - epsilon) # get scaling factor required to bring prob phi under tolerance value - with slight over-adjustment to stop any asymptotic behaviour
+    # get scaling factor required to bring prob phi under tolerance value -
+    # with slight over-adjustment to stop any asymptotic behaviour
+
+    sc <-  (p_min / phi) * (1 - epsilon)
     y_peak <- which.max(term_y)  # find biggest term in phi
 
-    P_target <- P_Q_insuff[y_peak] * sc # get target for reduced contribution from biggest term
+    # get target for reduced contribution from biggest term
 
-    B <- pwlquant(Forecast_quantiles, q_vals, num_q_vals, y_peak, (1 - P_target))     # get from forecast the demand associated with that target probability
+    P_target <- P_Q_insuff[y_peak] * sc
 
-    Q_i <- B + min_stock - inv_i - Q_out # set Q_i to be sufficient reduce bring biggest term in phi by sc - amount determined above.
+    # get from forecast the demand associated with that target probability
+
+    B <- pwlquant(Forecast_quantiles, q_vals, num_q_vals, y_peak, (1 - P_target))
+
+    # set Q_i to be sufficient reduce bring biggest term in phi by sc -
+    # amount determined above
+
+    Q_i <- B + min_stock - inv_i - Q_out
 
   } else {
 
@@ -350,6 +402,46 @@ Q_toomuch_Q <- function(forecast_q, o_orders, choose_distribution, current_q_i,
 inventory_reorder <- function(site, supplier, product, w_order, requis, holidays,
                               updateProgress = NULL){
 
+  product <- product %>%
+    dplyr::filter(Site == site, Supplier_name == supplier) %>%
+    dplyr::arrange(Drug_name)
+
+  for(chem in 1:nrow(product)[1]){
+
+  starting_stock_level1 <- initial_product_list %>%
+    dplyr::filter(Drug_code == product$Drug_code[chem])
+
+  starting_stock_level <- starting_stock_level1$stocklvl[1]
+
+  w_trans_log_df2a <- w_trans_log_df1 %>%
+    dplyr::filter(Drug_code == product$Drug_code[chem], Site == site,
+                  Date > as.Date("2022-02-11")) %>%
+    dplyr::summarise(Total_Qty = sum(Qty))
+
+
+  w_order_log_df3 <- w_order_log_df2 %>%
+    dplyr::filter(Drug_code == product$Drug_code[chem] & Site == site &
+                    Kind == "R" & DateReceived > as.Date("2022-02-11") &
+                    DateReceived < Sys.Date()) %>%
+    dplyr::summarise(Rec_Qty = (sum(QtyRec) * product$Packsize[chem]))
+
+
+  stock_level <- starting_stock_level + w_order_log_df3$Rec_Qty - w_trans_log_df2a
+  product$stocklvl[chem] <- as.numeric(stock_level)
+  product$stocklvl <- utils::type.convert(product$stocklvl)
+
+  product$stocklvl[chem] <- ifelse(product$stocklvl[chem] < 0, 0,
+                                               product$stocklvl[chem])
+
+  date_last_ordered <- w_order_log_df2 %>%
+    dplyr::filter(Drug_code == product$Drug_code[chem],
+                  Kind %in% c("D", "O", "I")) %>%
+    dplyr::arrange(desc(DateOrdered))
+
+  product$lastordered[chem] <- date_last_ordered$DateOrdered[1]
+
+}
+
   # Settings which aren't yet provided within the code
   max_storage_capacity <-  100000
 
@@ -393,7 +485,7 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
 
     comment <-  "None"
 
-    # cat(Drug_code)
+    cat(Drug_code)
 
     # Filter product for relevant product
 

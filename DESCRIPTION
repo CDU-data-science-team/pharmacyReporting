@@ -19,7 +19,8 @@ Imports:
     tibble,
     tidyr,
     tidyselect,
-    tsibble
+    tsibble,
+    utils
 Suggests: 
     here,
     knitr,

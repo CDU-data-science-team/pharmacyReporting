@@ -33,7 +33,7 @@ source(here::here("secret", "source_shiny_live.R"))
 
 ```{r}
 
-product = product_sup_profile
+product = initial_product_list
 w_order = w_order_log_df1
 requis = w_requis_df1
 
