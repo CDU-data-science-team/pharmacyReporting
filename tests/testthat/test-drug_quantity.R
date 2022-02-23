@@ -2,4 +2,44 @@
 
 test_that("inventory_functions works", {
   
+  load(here::here("data", "pharmacy.rda"))
+  
+  lower_lead = 1.5 # discrete min - 0.5
+  upper_lead = 10.5 # discrete max - 0.5
+  mode_lead = 4 # discrete mode
+  
+  # set distribution for delivery lead time
+  
+  lead_time_distribution <- distr6::Triangular$new(lower = lower_lead, 
+                                          upper = upper_lead,
+                                          mode = mode_lead)
+  
+  lead_time_dis <- lead_time_distribution$pdf(
+    seq(lower_lead - 0.5, upper_lead + 0.5, 1))
+  
+  lead_time_dis <- lead_time_distribution$pdf(
+    seq(lower_lead - 0.5, upper_lead + 0.5, 1))
+  
+  test_data <- pharmacy %>%
+    dplyr::filter(Site1 == "Site C", NSVCode == "Drug A")
+  
+  daily_data <- make_tsibble(test_data, frequency = "Daily")
+  
+  test_forecast <- forecast_series(demand_data, length(lead_time_dis) + 14,
+                                   frequency = "Daily")
+  
+  test_stock <- drug_quantity(forecast = test_forecast,
+                              outstanding_orders = 100,
+                              distribution = lead_time_dis,
+                              min_stock = 100,
+                              max_stock = 10000,
+                              p_min = 0.01,
+                              p_max = 0.05,
+                              inv_i = 150,
+                              delta_pref = 14)
+  
+  testthat::expect_equal(test_stock$Q_i, 10091.85, tolerance = 1)
+  testthat::expect_equal(test_stock$Delta_i, 5)
+  
+  
 })

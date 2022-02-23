@@ -303,8 +303,8 @@ Q_enough_Q <- function(lead_time_dis, inv_i, current_q_i, outstanding_orders,
   # we only need to go just beyond (Delta_i + longest lead time)
   for (y in seq(Delta_i + 1, Delta_i + lmax, 1)) {
     
-    # Prob_y[y] = lead_time_dis[y - Delta_i] wrong code Martin sent
-    Prob_y[y] = lead_time_dis$cdf(y-Delta_i)
+    Prob_y[y] = lead_time_dis[y - Delta_i] # wrong code Martin sent
+    # Prob_y[y] = lead_time_dis$cdf(y-Delta_i)
     
     # returns probability that demand up to and including day y eats into emergency stock
     P_Q_insuff[y] <- 1 - pwlcdf(Forecast_quantiles, q_vals, num_q_vals, y, 
@@ -313,7 +313,7 @@ Q_enough_Q <- function(lead_time_dis, inv_i, current_q_i, outstanding_orders,
   } # loop over second set of values of y
   
   # joint probability delivery of next order occurs at y and that q_i insufficient if so
-
+  
   term_y <- Prob_y * P_Q_insuff  
   
   # sums over all possible delivery times y to give probability that Q_i insufficient
@@ -355,7 +355,7 @@ Q_enough_Q <- function(lead_time_dis, inv_i, current_q_i, outstanding_orders,
 Q_toomuch_Q <- function(forecast_q, o_orders, choose_distribution, current_q_i,
                         max_stock, p_max, inv_i) {
   
-  # function indicates if Q_i meets storage condition and, if not, gives next Q_i to try  
+  # indicates if Q_i meets storage condition and, if not, gives next Q_i to try  
   
   epsilon <- 0.01
   flag2 = 0
@@ -370,11 +370,15 @@ Q_toomuch_Q <- function(forecast_q, o_orders, choose_distribution, current_q_i,
   
   for (x in seq(1, Forecast_length, 1)){
     
-    Prob_x[x] <- choose_distribution$cdf(x) - choose_distribution$cdf(x - 1)  # probability that this delivery will be on day x
+    # probability that this delivery will be on day x
+    
+    Prob_x[x] <- choose_distribution$cdf(x) - choose_distribution$cdf(x - 1)  
+    
+    # probability if this delivery arrives at time x it breaches storage constraint
     
     P_Q_toomuch[x] <- pwlcdf(
       forecast_q, q_vals, num_q_vals, x, inv_i + Q_out + Q_i - max_stock
-    ) # gives probability that, if this delivery arrives at time x, it will breach storage constraint
+    ) 
   }
   
   term_x <- Prob_x * P_Q_toomuch  # joint probability that delivery occurs at x and that Q_i breaches storage if so
@@ -424,40 +428,40 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
     dplyr::arrange(Drug_name)
   
   for(chem in 1:nrow(product)[1]){
-  
-  starting_stock_level1 <- initial_product_list %>% 
-    dplyr::filter(Drug_code == product$Drug_code[chem])
-  
-  starting_stock_level <- starting_stock_level1$stocklvl[1]
-
-  w_trans_log_df2a <- w_trans_log_df1 %>% 
-    dplyr::filter(Drug_code == product$Drug_code[chem], Site == site, 
-                  Date > as.Date("2022-02-11")) %>% 
-    dplyr::summarise(Total_Qty = sum(Qty))
-  
-  
-  w_order_log_df3 <- w_order_log_df2 %>% 
-    dplyr::filter(Drug_code == product$Drug_code[chem] & Site == site & 
-                    Kind == "R" & DateReceived > as.Date("2022-02-11") & 
-                    DateReceived < Sys.Date()) %>% 
-    dplyr::summarise(Rec_Qty = (sum(QtyRec) * product$Packsize[chem]))
-  
-  
-  stock_level <- starting_stock_level + w_order_log_df3$Rec_Qty - w_trans_log_df2a
-  product$stocklvl[chem] <- as.numeric(stock_level)
-  product$stocklvl <- utils::type.convert(product$stocklvl)
-  
-  product$stocklvl[chem] <- ifelse(product$stocklvl[chem] < 0, 0, 
-                                               product$stocklvl[chem])
-  
-  date_last_ordered <- w_order_log_df2 %>% 
-    dplyr::filter(Drug_code == product$Drug_code[chem], 
-                  Kind %in% c("D", "O", "I")) %>% 
-    dplyr::arrange(desc(DateOrdered))
-  
-  product$lastordered[chem] <- date_last_ordered$DateOrdered[1]
-  
-}
+    
+    starting_stock_level1 <- initial_product_list %>% 
+      dplyr::filter(Drug_code == product$Drug_code[chem])
+    
+    starting_stock_level <- starting_stock_level1$stocklvl[1]
+    
+    w_trans_log_df2a <- w_trans_log_df1 %>% 
+      dplyr::filter(Drug_code == product$Drug_code[chem], Site == site, 
+                    Date > as.Date("2022-02-11")) %>% 
+      dplyr::summarise(Total_Qty = sum(Qty))
+    
+    
+    w_order_log_df3 <- w_order_log_df2 %>% 
+      dplyr::filter(Drug_code == product$Drug_code[chem] & Site == site & 
+                      Kind == "R" & DateReceived > as.Date("2022-02-11") & 
+                      DateReceived < Sys.Date()) %>% 
+      dplyr::summarise(Rec_Qty = (sum(QtyRec) * product$Packsize[chem]))
+    
+    
+    stock_level <- starting_stock_level + w_order_log_df3$Rec_Qty - w_trans_log_df2a
+    product$stocklvl[chem] <- as.numeric(stock_level)
+    product$stocklvl <- utils::type.convert(product$stocklvl)
+    
+    product$stocklvl[chem] <- ifelse(product$stocklvl[chem] < 0, 0, 
+                                     product$stocklvl[chem])
+    
+    date_last_ordered <- w_order_log_df2 %>% 
+      dplyr::filter(Drug_code == product$Drug_code[chem], 
+                    Kind %in% c("D", "O", "I")) %>% 
+      dplyr::arrange(desc(DateOrdered))
+    
+    product$lastordered[chem] <- date_last_ordered$DateOrdered[1]
+    
+  }
   
   # Settings which aren't yet provided within the code
   max_storage_capacity <-  100000
@@ -521,6 +525,7 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
       return(
         data.frame(drug = Drug_code,
                    order = NA,
+                   actual_order_qty = 0,
                    days_to_order = NA,
                    Drug_Name = product_info$Drug_name[1],
                    Supplier_Tradename = product_info$SupplierTradeName[1],
@@ -547,6 +552,7 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
       return(
         data.frame(drug = Drug_code,
                    order = NA,
+                   actual_order_qty = 0,
                    days_to_order = NA,
                    Drug_Name = product_info$Drug_name[1],
                    Supplier_Tradename = product_info$SupplierTradeName[1],
@@ -583,6 +589,7 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
       return(
         data.frame(drug = Drug_code,
                    order = NA,
+                   actual_order_qty = 0,
                    days_to_order = NA,
                    Drug_Name = product_info$Drug_name[1],
                    Supplier_Tradename = product_info$SupplierTradeName[1],
@@ -600,12 +607,14 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
     leadmode <- calc_mode(leadtime$leadtime)
     
     # set distribution for delivery lead time
-    lead_time_dis <- distr6::Triangular$new(
+    lead_time_distribution <- distr6::Triangular$new(
       lower = leadmin - 0.5, 
       upper = leadmax + 0.5, # Have had to make upper +0.5 rather than -0.5 in  
       # original code otherwise if min, max & mode is 1 distr6 doesn't work 
       # as upper is less than mode
       mode = leadmode)
+    
+    lead_time_dis <- lead_time_distribution$pdf(seq(leadmin - 0.5, leadmax + 0.5, 1))
     
     # find outstanding order quantity for orders placed within last 14 days
     outstanding_order_qty  <- orders_outstanding %>%
@@ -672,6 +681,7 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
       return(
         data.frame(drug = Drug_code,
                    order = NA,
+                   actual_order_qty = 0,
                    days_to_order = NA,
                    Drug_Name = product_info$Drug_name[1],
                    Supplier_Tradename = product_info$SupplierTradeName[1],
@@ -711,6 +721,7 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
       return(
         data.frame(drug = Drug_code,
                    order = NA,
+                   actual_order_qty = 0,
                    days_to_order = NA,
                    Drug_Name = product_info$Drug_name[1],
                    Supplier_Tradename = product_info$SupplierTradeName[1],
@@ -735,7 +746,8 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
     # Run forecast
     demand_data <- make_tsibble(demand_data, frequency = "Daily")
     
-    daily_forecast <- forecast_series(demand_data, 28, frequency = "Daily")
+    daily_forecast <- forecast_series(demand_data, length(lead_time_dis) + 14,
+                                      frequency = "Daily")
     
     actual_forecast <- daily_forecast %>% 
       dplyr::filter(.model == "ARIMA")
@@ -756,6 +768,9 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
     to_return <- data.frame(drug = Drug_code,
                             order = ceiling(step$Q_i / product_info$Packsize[1] +
                                               outstanding_requis_quantity),
+                            actual_order_qty = ceiling(
+                              step$Q_i / product_info$Packsize[1] +
+                                outstanding_requis_quantity),
                             days_to_order = step$Delta_i,
                             Drug_Name = product_info$Drug_name[1],
                             Supplier_Tradename = product_info$SupplierTradeName[1],
@@ -789,16 +804,23 @@ test_that("inventory_functions works", {
   
   # set distribution for delivery lead time
   
-  lead_time_dis <- distr6::Triangular$new(lower = lower_lead, 
+  lead_time_distribution <- distr6::Triangular$new(lower = lower_lead, 
                                           upper = upper_lead,
                                           mode = mode_lead)
+  
+  lead_time_dis <- lead_time_distribution$pdf(
+    seq(lower_lead - 0.5, upper_lead + 0.5, 1))
+  
+  lead_time_dis <- lead_time_distribution$pdf(
+    seq(lower_lead - 0.5, upper_lead + 0.5, 1))
   
   test_data <- pharmacy %>%
     dplyr::filter(Site1 == "Site C", NSVCode == "Drug A")
   
   daily_data <- make_tsibble(test_data, frequency = "Daily")
   
-  test_forecast <- forecast_series(daily_data, 42, frequency = "Daily")
+  test_forecast <- forecast_series(demand_data, length(lead_time_dis) + 14,
+                                   frequency = "Daily")
   
   test_stock <- drug_quantity(forecast = test_forecast,
                               outstanding_orders = 100,
