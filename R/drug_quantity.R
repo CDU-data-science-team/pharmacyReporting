@@ -452,18 +452,19 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
     
     w_trans_log_df2a <- w_trans_log_df1 %>% 
       dplyr::filter(Drug_code == product$Drug_code[chem], Site == site, 
-                    Date > as.Date("2022-02-11")) %>% 
+                    Date > as.Date("2022-02-25")) %>% 
       dplyr::summarise(Total_Qty = sum(Qty))
     
     
     w_order_log_df3 <- w_order_log_df2 %>% 
       dplyr::filter(Drug_code == product$Drug_code[chem] & Site == site & 
-                      Kind == "R" & DateReceived > as.Date("2022-02-11") & 
+                      Kind == "R" & DateReceived > as.Date("2022-02-25") & 
                       DateReceived < Sys.Date()) %>% 
       dplyr::summarise(Rec_Qty = (sum(QtyRec) * product$Packsize[chem]))
     
     
-    stock_level <- starting_stock_level + w_order_log_df3$Rec_Qty - w_trans_log_df2a
+    stock_level <- starting_stock_level + 
+      w_order_log_df3$Rec_Qty - w_trans_log_df2a
     product$stocklvl[chem] <- as.numeric(stock_level)
     product$stocklvl <- utils::type.convert(product$stocklvl)
     
@@ -471,7 +472,7 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
                                      product$stocklvl[chem])
     
     date_last_ordered <- w_order_log_df2 %>% 
-      dplyr::filter(Drug_code == product$Drug_code[chem], 
+      dplyr::filter(Drug_code == product$Drug_code[chem], Site == site,
                     Kind %in% c("D", "O", "I")) %>% 
       dplyr::arrange(desc(DateOrdered))
     
@@ -483,8 +484,9 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
   max_storage_capacity <-  100000
   
   # add in other waste / expiry / adjustment codes
-  waste_adjust_codes <- c("Adj", "ADJ","COMSP","EXP", "HADJ","HEXP", "HWAST", "MOCK", 
-                          "RWAST", "TEST", "TRG", "WAST", "WASTE", "XXXX")
+  waste_adjust_codes <- c("Adj", "ADJ","COMSP","EXP", "HADJ","HEXP", "HWAST", 
+                          "MOCK",  "RWAST", "TEST", "TRG", "WAST", "WASTE", 
+                          "XXXX")
   
   # list of excluded suppliers for site 100
   
@@ -550,6 +552,7 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
                    Stock_Level = product_info$stocklvl[1],
                    Last_Order_Date = product_info$lastordered[1],
                    Min_stock_risk = NA,
+                   Min_stock_level = NA,
                    Comments = "No history - order manually")
       )
     }
@@ -577,6 +580,7 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
                    Stock_Level = product_info$stocklvl[1],
                    Last_Order_Date = product_info$lastordered[1],
                    Min_stock_risk = NA,
+                   Min_stock_level = NA,
                    Comments = "No history - order manually")
       )
     }
@@ -614,6 +618,7 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
                    Stock_Level = product_info$stocklvl[1],
                    Last_Order_Date = product_info$lastordered[1],
                    Min_stock_risk = NA,
+                   Min_stock_level = NA,
                    Comments = "No history - order manually")
       )
     }
@@ -706,6 +711,7 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
                    Stock_Level = product_info$stocklvl[1],
                    Last_Order_Date = product_info$lastordered[1],
                    Min_stock_risk = NA,
+                   Min_stock_level = NA,
                    Comments = "No history - order manually")
       )
     }
@@ -746,11 +752,12 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
                    Stock_Level = product_info$stocklvl[1],
                    Last_Order_Date = product_info$lastordered[1],
                    Min_stock_risk = NA,
+                   Min_stock_level = NA,
                    Comments = "No history - order manually")
       )
     }
     
-    if(time_til_next_order$Delta_p[1] >= 7){
+    if(time_til_next_order$Delta_p[1] > 7){
       risk_of_min_stock <- 0.15
       risk_of_exceeding_max_stock <- 0.05
       
@@ -795,6 +802,7 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
                             Stock_Level = product_info$stocklvl[1],
                             Last_Order_Date = product_info$lastordered[1],
                             Min_stock_risk = risk_of_min_stock,
+                            Min_stock_level = min_stock_level,
                             Comments = comment)
     
     # updateProgress(detail = paste0("Drug: ", to_return$drug, ", order:",
