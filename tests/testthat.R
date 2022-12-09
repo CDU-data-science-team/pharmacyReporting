@@ -1,4 +1,4 @@
 library(testthat)
-library(pharmacyReports)
+library(pharmacyReporting)
 
-test_check("pharmacyReports")
+test_check("pharmacyReporting")

@@ -884,6 +884,6 @@ test_that("inventory_functions works", {
 # Run but keep eval=FALSE to avoid infinite loop
 # Execute in the console directly
 fusen::inflate(flat_file = "dev/flat_inventory_functions.Rmd", 
-               vignette_name = "Inventory functions")
+               vignette_name = NA)
 ```
 

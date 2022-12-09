@@ -1,4 +1,4 @@
-Package: pharmacyReports
+Package: pharmacyReporting
 Title: Generate Reports For Pharmacy Inventory Project
 Version: 0.0.0.9000
 Authors@R: 
@@ -6,26 +6,10 @@ Authors@R:
 Description: Using forecasting and stock control mechanisms.
 License: MIT + file LICENSE
 Imports: 
-    distr6,
-    dplyr,
-    fable,
-    fabletools,
-    ggplot2,
-    jsonlite,
-    lubridate,
-    magrittr,
-    purrr,
-    stats,
-    tibble,
-    tidyr,
-    tidyselect,
-    tsibble,
-    utils
+    magrittr
 Suggests: 
-    here,
     knitr,
-    rmarkdown,
-    testthat
+    rmarkdown
 VignetteBuilder: 
     knitr
 Encoding: UTF-8

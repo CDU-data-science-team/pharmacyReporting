@@ -7,9 +7,9 @@ resource_files:
 - R/calc_mode.R
 - R/drug_quantity.R
 - R/make_tsibble.R
-- R/pharmacyReports-package.R
+- R/pharmacyReporting-package.R
 - R/utils-pipe.R
-- pharmacyReports.Rproj
+- pharmacyReporting.Rproj
 - secret/source_shiny_live.R
 ---
 
