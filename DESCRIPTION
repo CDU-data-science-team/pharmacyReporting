@@ -6,12 +6,28 @@ Authors@R:
 Description: Using forecasting and stock control mechanisms.
 License: MIT + file LICENSE
 Imports: 
-    magrittr
+    distr6,
+    dplyr,
+    fable,
+    fabletools,
+    ggplot2,
+    jsonlite,
+    lubridate,
+    magrittr,
+    purrr,
+    stats,
+    tibble,
+    tidyr,
+    tidyselect,
+    tsibble,
+    utils
 Suggests: 
+    here,
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat
 VignetteBuilder: 
     knitr
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.1

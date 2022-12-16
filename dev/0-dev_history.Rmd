@@ -79,7 +79,7 @@ fusen::add_flat_template("add", flat_name = "inventory_functions")
 fusen::inflate(flat_file = "dev/flat_helper-functions.Rmd", 
                vignette_name = "Helper functions", overwrite = TRUE)
 
-fusen::inflate(rmd = "dev/flat_inventory_functions.Rmd")
+fusen::inflate(flat_file = "dev/flat_inventory_functions.Rmd")
 
 fusen::inflate(flat_file = "dev/flat_data-forecasting.Rmd", 
                vignette_name = "Data and forecasting functions", overwrite = TRUE)
