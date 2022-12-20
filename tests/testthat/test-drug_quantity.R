@@ -2,7 +2,7 @@
 
 test_that("inventory_functions works", {
   
-  load(here::here("data", "pharmacy.rda"))
+  load("pharmacy.rda")
   
   lower_lead = 1.5 # discrete min - 0.5
   upper_lead = 10.5 # discrete max - 0.5
