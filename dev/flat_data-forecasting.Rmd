@@ -241,6 +241,28 @@ test_that("Forecast produced", {
   
 })
 
+test_that("Make quantiles functions", {
+  
+  test_data <- pharmacy %>%
+    dplyr::filter(Site1 == "Site A", NSVCode == "Drug A")
+  
+  daily_data <- make_tsibble(test_data, frequency = "Daily")
+  
+  weekly_data <- make_tsibble(test_data, frequency = "Weekly")
+  
+  daily_forecast <- forecast_series(
+    daily_data %>% head(-42), 42, frequency = "Daily")
+  
+  weekly_forecast <- forecast_series(
+    daily_data %>% head(-6), 6, frequency = "Weekly")
+  
+  actual_forecast <- daily_forecast %>% 
+      dplyr::filter(.model == "ARIMA")
+  
+  test_q <- make_quantiles(actual_forecast, num_q_vals = 100)
+  
+})
+
 ```
 
 ```{r development-inflate, eval=FALSE}
