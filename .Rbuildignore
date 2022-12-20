@@ -8,3 +8,7 @@
 ^pharmacyReporting\.Rproj$
 ^\.Rproj\.user$
 ^pharmacyReporting\.Rproj$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+
