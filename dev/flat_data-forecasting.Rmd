@@ -199,7 +199,7 @@ After inflating the template
 
 ```{r tests-forecasting}
 
-load(here::here("data", "pharmacy.rda"))
+load("pharmacy.rda")
 
 test_that("Data produced correctly", {
   
