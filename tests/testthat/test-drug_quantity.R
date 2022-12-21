@@ -11,8 +11,8 @@ test_that("inventory_functions works", {
   # set distribution for delivery lead time
   
   lead_time_distribution <- distr6::Triangular$new(lower = lower_lead, 
-                                          upper = upper_lead,
-                                          mode = mode_lead)
+                                                   upper = upper_lead,
+                                                   mode = mode_lead)
   
   lead_time_dis <- lead_time_distribution$pdf(
     seq(lower_lead - 0.5, upper_lead + 0.5, 1))
@@ -25,7 +25,7 @@ test_that("inventory_functions works", {
   
   daily_data <- make_tsibble(test_data, frequency = "Daily")
   
-  test_forecast <- forecast_series(demand_data, length(lead_time_dis) + 14,
+  test_forecast <- forecast_series(daily_data, length(lead_time_dis) + 14,
                                    frequency = "Daily")
   
   test_stock <- drug_quantity(forecast = test_forecast,

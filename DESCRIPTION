@@ -5,6 +5,8 @@ Authors@R:
     person("Chris", "Beeley", , "chris.beeley@gmail.com", role = c("aut", "cre"))
 Description: Using forecasting and stock control mechanisms.
 License: MIT + file LICENSE
+Depends: 
+    R (>= 2.10)
 Imports: 
     distr6,
     dplyr,
@@ -22,11 +24,10 @@ Imports:
     tsibble,
     utils
 Suggests: 
-    knitr,
-    rmarkdown,
     testthat
 VignetteBuilder: 
     knitr
 Encoding: UTF-8
+LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.1

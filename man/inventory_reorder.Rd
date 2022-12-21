@@ -26,6 +26,9 @@ app_server.R}
 \item{w_order}{dataframe. Contents of w_order_log_df1, loaded in
 app_server.R}
 }
+\value{
+dataframe containing drug name, stock level, days to order, etc.
+}
 \description{
 Forecast and run inventory management algorithm, returning reorder quantities
 by site and drug
