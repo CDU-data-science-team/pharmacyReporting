@@ -385,39 +385,35 @@ Q_toomuch_Q <- function(forecast_q, o_orders, choose_distribution, current_q_i,
   #  Prob_x <-c(rep(0,Forecast_length)) # initialise to zero
   #  term_x <- c(rep(0,Forecast_length))  
   
-  Q_out <- sum(Outstanding_orders$Ord_quant)
+  Q_out <- o_orders
   
   # NEW FOR OCTOBER 2021  
   
   Prob_x <- choose_distribution
   #  for (x in seq(1,Forecast_length,1)){
   
-  for (x in 1:lmax){
+  for (x in 1 : lmax){
     
     # to reflect change in lead_time_dis from a Distr6 entity to a vector           
     #    Prob_x[x] <- lead_time_dis$cdf(x)- lead_time_dis$cdf(x-1)  # probability that this delivery will be on day x
-    
-    
-    
-    
-    #    P_Q_toomuch[x] <-  pnorm((Inv_i+Q_out+Q_i-Storage_constraint),Forecast$mean_cumulative_demand[x],Forecast$sd_cumulative[x], lower.tail = TRUE)    
+    #    P_Q_toomuch[x] <-  pnorm((Inv_i+Q_out+Q_i-Storage_constraint),
+    #      Forecast$mean_cumulative_demand[x],Forecast$sd_cumulative[x], lower.tail = TRUE)    
     #    P_Q_toomuch[x] <- Fcast[x]$cdf(Inv_i+Q_out+Q_i-Storage_constraint,lower.tail = TRUE )   
+    
+    # gives probability that, if this delivery arrives at time x, it will 
+    # breach storage constraint
     P_Q_toomuch[x] <- pwlcdf(
       Forecast_quantiles, q_vals, num_q_vals, x, 
-      inv_i + Q_out + Q_i - max_stock) # gives probability that, if this delivery arrives at time x, it will breach storage constraint
+      inv_i + Q_out + Q_i - max_stock)
   }
-  
-  #  message(paste(Prob_x))  
-  #  print("lead time dis")
-  #print(Prob_x)  
   
   term_x <- Prob_x * P_Q_toomuch  # joint probability that delivery occurs at x and that Q_i breaches storage if so
   
-  gam <- sum(term_x)   # summming over all possible x, this is prob that delivery will breach storage on arrival
+  gam <- sum(term_x) # summming over all possible x, this is prob that delivery will breach storage on arrival
   
-  if (gam > p_max) {   # compare to tolerance 
+  if (gam > p_max) { # compare to tolerance 
     
-    sc <-  (p_max / gam) * (1-epsilon) # get reduction required in prob of breach
+    sc <-  (p_max / gam) * (1 - epsilon) # get reduction required in prob of breach
     x_peak <- which.max(term_x) # find x with biggest contribution to prob of breach
     
     P_target <- P_Q_toomuch[x_peak] * sc   # get target for reduced contribution from biggest term
@@ -869,7 +865,7 @@ test_that("inventory_functions works", {
   
   daily_data <- make_tsibble(test_data, frequency = "Daily")
   
-  test_forecast <- forecast_series(demand_data, length(lead_time_dis) + 14,
+  test_forecast <- forecast_series(daily_data, length(lead_time_dis) + 14,
                                    frequency = "Daily")
   
   test_stock <- drug_quantity(forecast = test_forecast,
