@@ -1,0 +1,83 @@
+---
+title: "Test of forecasting models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{forecasting}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+
+library(tidyverse)
+library(lubridate)
+library(fable)
+library(tibbletime)
+library(feasts)
+library(tsibble)
+library(sweep)
+library(knitr)
+library(fable.prophet)
+library(pander)
+library(fasster)
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = TRUE, 
+                      results = "asis")
+
+load(here::here("data", "pharmacy_forecast.rda"))
+
+```
+
+## All sites and drugs {.tabset}
+
+### Drug A
+
+```{r}
+
+drug_code <- "Drug A"
+
+res <- sapply(c("Site A", "Site B", "Site C"), function(x) {
+  knitr::knit_child(
+    '_child.Rmd', envir = environment(), quiet = TRUE
+  )
+})
+
+cat(unlist(res), sep = '\n')
+
+```
+
+### Drug B
+
+Drug B is excluded from this analysis because there is only 3 years of data for Drug B. It may be included at a later date.
+
+### Drug C
+
+```{r}
+
+drug_code <- "Drug C"
+
+res <- sapply(c("Site A", "Site B", "Site C"), function(x) {
+  knitr::knit_child(
+    '_child.Rmd', envir = environment(), quiet = TRUE
+  )
+})
+
+cat(unlist(res), sep = '\n')
+
+```
+
+### Drug D
+
+```{r}
+
+drug_code <- "Drug D"
+
+res <- sapply(c("Site A", "Site B", "Site C"), function(x) {
+  knitr::knit_child(
+    '_child.Rmd', envir = environment(), quiet = TRUE
+  )
+})
+
+cat(unlist(res), sep = '\n')
+
+```

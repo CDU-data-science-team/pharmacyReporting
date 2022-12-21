@@ -1,0 +1,315 @@
+---
+title: "child"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{child}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include=FALSE}
+
+drug <- pharmacy_forecast %>% 
+  dplyr::filter(NSVCode == drug_code) %>% 
+  dplyr::filter(Site1 == x) %>%
+  dplyr::filter(Total_Qty >= 0) %>% 
+  dplyr::group_by(Date) %>%
+  dplyr::summarise(quantity = sum(Total_Qty, na.rm = TRUE)) %>% 
+  dplyr::ungroup() %>%  
+  tsibble::tsibble(index = Date) %>% 
+  tsibble::fill_gaps(quantity = 0)
+
+drug_week <- pharmacy_forecast %>% 
+  dplyr::filter(NSVCode == drug_code) %>% 
+  dplyr::filter(Site1 == x) %>%
+  dplyr::filter(Total_Qty >= 0) %>% 
+  dplyr::mutate(Date = lubridate::floor_date(Date, "week"),
+         Date = tsibble::yearweek(Date)) %>%
+  dplyr::group_by(Date) %>%
+  dplyr::summarise(quantity = sum(Total_Qty, na.rm = TRUE)) %>% 
+  dplyr::ungroup() %>% 
+  head(-1) %>% # remove the last row in case it isn't a complete week
+  tsibble::tsibble(index = Date) %>% 
+  tsibble::fill_gaps(quantity = 0)
+
+# horizon for prediction 6 weeks
+
+h <- 6
+
+```
+
+#### `r x`
+
+##### Seasonality
+
+###### Week
+
+```{r}
+
+drug %>% 
+  feasts::gg_subseries(period = "week")
+
+```
+
+###### Year
+
+```{r, fig.height=10}
+
+drug_year <- drug %>% 
+  dplyr::mutate(year = lubridate::year(Date))
+
+lubridate::year(drug_year$Date) = 2020
+
+drug_year %>% 
+  ggplot2::ggplot(ggplot2::aes(x = Date, y = quantity)) + 
+  ggplot2::geom_line() +
+  ggplot2::facet_wrap(~ year, ncol = 1)
+
+drug_week %>% 
+  feasts::gg_season(quantity, "year")
+
+```
+
+###### Raw data
+
+```{r}
+
+drug %>%
+  fabletools::model(feasts::STL(quantity ~ trend(window = 11) + 
+                                  season(c(7, 365)),
+            robust = TRUE)) %>%
+  fabletools::components() %>%
+  ggplot2::autoplot() + 
+  ggplot2::ggtitle("Raw data STL decomposition")
+
+```
+
+###### Detail of data
+
+```{r}
+
+drug %>%
+  fabletools::model(feasts::STL(quantity ~ trend(window = 11) + 
+                                  season(c(7, 365)),
+            robust = TRUE)) %>%
+  fabletools::components() %>%
+  tail(365 * 2) %>% 
+  ggplot2::autoplot() + 
+  ggplot2::ggtitle("Raw data STL decomposition")
+
+```
+
+###### Weekly totals
+
+```{r}
+
+drug_week %>%
+  fabletools::model(STL(quantity ~ trend(window = 11) + season("1 year"),
+            robust = TRUE)) %>%
+  fabletools::components() %>%
+  ggplot2::autoplot() + 
+  ggplot2::ggtitle("Weekly totals STL decomposition")
+
+```
+
+###### Detail of weekly totals
+
+```{r}
+
+drug_week %>%
+  fabletools::model(STL(quantity ~ trend(window = 11) + season(c("1 year")),
+            robust = TRUE)) %>%
+  fabletools::components() %>%
+  tail(52 * 2) %>% 
+  ggplot2::autoplot() + 
+  ggplot2::ggtitle("Weekly totals STL decomposition")
+
+```
+
+##### Residuals of STL model- raw data and weekly totals
+
+```{r}
+
+# compare residuals
+
+dplyr::bind_rows(
+  drug %>%
+    fabletools::model(feasts::STL(quantity ~ trend(window = 11) + 
+                                    season(c(7, 365)),
+              robust = TRUE)) %>%
+    fabletools::components() %>% 
+    tibble::as_tibble() %>% 
+    dplyr::mutate(model = "raw") %>% 
+    dplyr::select(model, remainder),
+  
+  drug_week %>%
+    fabletools::model(feasts::STL(quantity ~ trend(window = 11) + 
+                                    season(c("1 year")),
+              robust = TRUE)) %>%
+    fabletools::components() %>% 
+    tibble::as_tibble() %>% 
+    dplyr::mutate(model = "weekly") %>% 
+    dplyr::select(model, remainder)
+) %>% 
+  ggplot2::ggplot(ggplot2::aes(x = remainder)) + ggplot2::geom_histogram() + 
+  ggplot2::facet_wrap(~ model, scales = "free")
+
+```
+
+##### Simple exponential smoothing
+
+```{r}
+
+fit_ets <- drug_week %>% 
+  fabletools::model(ETS(quantity ~ season(method = "N")))
+
+fit_ets %>% 
+  sweep::sw_tidy() %>% 
+  knitr::kable()
+
+fit_ets %>% 
+  feasts::gg_tsresiduals(lag_max = 16)
+
+```
+
+Ljung Box test for autocorrelation of residuals
+
+```{r}
+
+fabletools::augment(fit_ets) %>%
+  fabletools::features(.resid, ljung_box, lag = 16, dof = 6) %>% 
+  knitr::kable()
+
+```
+
+##### ARIMA
+
+```{r}
+
+arima_drug <- drug_week %>% 
+  fabletools::model(ARIMA(quantity))
+
+arima_drug %>% 
+  sweep::sw_tidy() %>% 
+  knitr::kable()
+
+feasts::gg_tsresiduals(arima_drug, lag_max = 16)
+
+arima_drug %>% 
+  augment() %>% 
+  autoplot(.resid)
+
+```
+
+Ljung Box test for autocorrelation of residuals
+
+```{r}
+
+arima_drug %>%
+  augment() %>% 
+  features(.resid, ljung_box, lag = 16, dof = 6) %>% 
+  kable()
+
+```
+
+##### Model testing
+
+###### Weekly data
+
+```{r}
+
+drug_train <- drug_week %>% 
+  head(-h)
+
+drug_model <- drug_train %>% 
+  model(SNAIVE(quantity), 
+        ARIMA(quantity),
+        ETS(quantity ~ season(method = "N")),
+        prophet(quantity),
+        FASSTER(quantity ~ trend(1))) %>%
+  forecast(h = h)
+
+drug_model %>% 
+  autoplot(drug_week %>% tail(h), level = NULL)
+
+drug_model %>% 
+  accuracy(drug_week) %>% 
+  mutate(across(where(is.numeric), signif, 5)) %>%
+  select(-ACF1) %>%
+  kable()
+
+```
+
+###### Daily data
+
+```{r}
+
+drug_train <- drug %>% 
+  head(-42)
+
+drug_model_day <- drug_train %>% 
+  model(SNAIVE(quantity ~ lag("week")), 
+        ARIMA(quantity),
+        ETS(quantity ~ season(method = "A")),
+        prophet(quantity ~ season(7)),
+        FASSTER(quantity ~ trend(1) + fourier(7))) %>%
+  forecast(h = 42)
+
+drug_model_day %>% 
+  autoplot(drug %>% tail(42), level = NULL)
+
+drug_model_day %>% 
+  accuracy(drug) %>% 
+  mutate(across(where(is.numeric), signif, 5)) %>%
+  select(-ACF1) %>%
+  kable()
+
+```
+
+##### Cross validation
+
+Cross validated accuracy for a variety of models using weekly data.
+
+```{r}
+
+drug_week_cv <- drug_week %>%
+  slice(1 : (n() - h)) %>%
+  slide_tsibble(.size = 250, .step = 10)
+
+cv_model <- drug_week_cv %>%
+  model(SNAIVE(quantity), 
+        ARIMA(quantity),
+        ETS(quantity ~ season(method = "N")),
+        prophet(quantity),
+        FASSTER(quantity ~ trend(1))) %>%
+  forecast(h = h)
+
+cv_model %>% 
+  accuracy(drug_week) %>% 
+  kable()
+
+```
+
+###### Cross validation- daily
+
+Cross validated accuracy for a variety of models using daily data.
+
+```{r}
+
+drug_day_cv <- drug %>%
+  slice(1 : (n() - 42)) %>%
+  slide_tsibble(.size = 2200, .step = 100)
+
+cv_model_day <- drug_day_cv %>%
+  model(SNAIVE(quantity ~ lag("week")), 
+        ARIMA(quantity),
+        ETS(quantity ~ season(method = "A")),
+        prophet(quantity ~ season(7)),
+        FASSTER(quantity ~ trend(1) + fourier(7))) %>%
+  forecast(h = 42)
+
+cv_model_day %>% 
+  accuracy(drug) %>% 
+  kable()
+
+```

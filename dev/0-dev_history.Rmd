@@ -83,7 +83,6 @@ usethis::use_vignette("child")
 
 source("dev/inflate_rmd.R")
 
-
 ```
 
 
