@@ -706,7 +706,9 @@ inventory_reorder <- function(site, supplier, product, w_order, requis, holidays
       dplyr::filter(Site == site,
                     .data$Drug_code == .env$Drug_code,
                     !Ward %in% waste_adjust_codes,
-                    Qty >= 0) %>% 
+                    Qty >= 0,
+                    Date < order_date,
+                    Date < Sys.Date()) %>%
       rbind(data.frame(WTranslogID = "NA", Date = Sys.Date(), 
                        Drug_code = Drug_code,  
                        Qty = 0, Ward = "NA", Site = site)) %>% 
