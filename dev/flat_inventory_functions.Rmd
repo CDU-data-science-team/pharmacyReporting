@@ -450,7 +450,7 @@ Q_toomuch_Q <- function(forecast_q, o_orders, choose_distribution, current_q_i,
 #' @param w_order dataframe. Contents of w_order_log_df1, loaded in 
 #' app_server.R
 #'
-#' @return
+#' @return dataframe containing drug name, stock level, days to order, etc.
 #' @export
 #'
 inventory_reorder <- function(site, supplier, product, w_order, requis, holidays,
