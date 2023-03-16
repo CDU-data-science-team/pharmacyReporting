@@ -1,5 +1,3 @@
 ## Pharmacy reporting
 
-<!-- badges: start -->
-  [![R-CMD-check](https://github.com/CDU-data-science-team/pharmacyReporting/workflows/R-CMD-check/badge.svg)](https://github.com/CDU-data-science-team/pharmacyReporting/actions)
-<!-- badges: end -->
+This repo summarises work on a forecasting/ stock control system used in pharmacy services in Nottinghamshire Healthcare NHS Trust. The work was successfully shadow tested and is now being reworked to work with a new database. 
